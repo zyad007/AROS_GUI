@@ -18,10 +18,13 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
+    "@serialport/parser-readline": "^12.0.0",
     "@vis.gl/react-google-maps": "^0.10.0",
     "maplibre-gl": "^4.2.0",
     "react-map-gl": "^7.1.7",
-    "react-router-dom": "^6.23.0"
+    "react-modal": "^3.16.1",
+    "react-router-dom": "^6.23.0",
+    "serialport": "^12.0.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",

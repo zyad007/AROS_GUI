@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createConnection, Socket } from 'net';
 import { readFileSync } from 'fs';
+import { ReadlineParser, SerialPort } from 'serialport';
 
 
 const IMAGE_PATH = `/tmp/detected_pics/`;
@@ -57,43 +58,70 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-  
+
   const mainWindow = createWindow()
-  
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
-  let long = 31.234049;
-  let lat = 30.050363;
+  const serialPort = new SerialPort({ path: '/dev/ttyAMA0', baudRate: 9600, parity: 'none', stopBits: 1, dataBits: 8 }) // '/dev/ttyAMA0' for Pi 3
+  serialPort.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
-  const modelClient =  new Socket();
-  
-  modelClient.connect({port: 12345, host: '127.0.0.1'}, () => {
+  serialPort.on('data', (data) => {
+    console.log(data);
+    mainWindow.webContents.send('v2v_receive', data)
+  })
+  const modelClient = new Socket();
+
+  modelClient.connect({ port: 12345, host: '127.0.0.1' }, () => {
     console.log('Connected to Model');
   })
 
   modelClient.on('data', (data) => {
-    const parsed = JSON.parse(data.toString());
+    const obstacle = JSON.parse(data.toString());
+    const imageId = obstacle.shift();
 
-    const imageId = parsed.shift();
-    console.log(parsed);
+    // Warn User
+    mainWindow.webContents.send('obstacle_detected', {
+      class: obstacle.class,
+      score: obstacle.score,
+      box: obstacle.box,
+      imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
+    })
+    // Warn V2V
+    serialPort.emit('data', {
+      class: obstacle.class,
+      score: obstacle.score,
+    })
+    // Send Server
+
+
+    console.log(obstacle);
     try {
-      readFileSync(IMAGE_PATH + `frame${imageId}`)
-    } catch(e) {
+      const img = readFileSync(IMAGE_PATH + `frame${imageId}`)
+    } catch (e) {
       console.log(e);
     }
   })
 
+
+  let long = 31.234049;
+  let lat = 30.050363;
+
   setInterval(() => {
     lat += 0.00001;
+    mainWindow.webContents.send('obstacle_detected', {
+      imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
+    })
     mainWindow.webContents.send('gps', {
       long,
       lat
     })
   }, 3000)
+
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
