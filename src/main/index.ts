@@ -81,46 +81,61 @@ app.whenReady().then(() => {
   })
 
   modelClient.on('data', (data) => {
-    const obstacle = JSON.parse(data.toString());
-    const imageId = obstacle.shift();
 
-    // Warn User
-    mainWindow.webContents.send('obstacle_detected', {
-      class: obstacle.class,
-      score: obstacle.score,
-      box: obstacle.box,
-      imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
+    if(data.toString() === '{}') return;
+
+    const obstacles = JSON.parse(data.toString());
+    const imageId = obstacles.shift();
+
+    obstacles.forEach(obstacle => {
+
+      if (obstacle.class !== 'D50') return;
+
+      try {
+        // Warn User
+        mainWindow.webContents.send('obstacle_detected', {
+          class: obstacle.class,
+          score: obstacle.score,
+          box: obstacle.box,
+          imagePath: readFileSync(IMAGE_PATH + `frame${imageId}`)
+        })
+        // Warn V2V
+        serialPort.write(JSON.stringify({
+          class: obstacle.class,
+          score: obstacle.score,
+        }) + '\n', 'utf-8');
+        // Send Server
+
+        console.log(obstacle);
+      }
+
+      catch (e) {
+        console.log(e);
+      }
+
     })
-    // Warn V2V
-    serialPort.emit('data', {
-      class: obstacle.class,
-      score: obstacle.score,
-    })
-    // Send Server
 
-
-    console.log(obstacle);
-    try {
-      const img = readFileSync(IMAGE_PATH + `frame${imageId}`)
-    } catch (e) {
-      console.log(e);
-    }
   })
 
 
   let long = 31.234049;
   let lat = 30.050363;
 
-  setInterval(() => {
-    lat += 0.00001;
-    mainWindow.webContents.send('obstacle_detected', {
-      imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
-    })
-    mainWindow.webContents.send('gps', {
-      long,
-      lat
-    })
-  }, 3000)
+  mainWindow.webContents.send('gps', {
+    long,
+    lat
+  })
+
+  // setInterval(() => {
+  //   lat += 0.00001;
+  //   mainWindow.webContents.send('obstacle_detected', {
+  //     imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
+  //   })
+  //   mainWindow.webContents.send('gps', {
+  //     long,
+  //     lat
+  //   })
+  // }, 3000)
 
 })
 
