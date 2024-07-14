@@ -184,33 +184,32 @@ app.whenReady().then(() => {
           .then((res) => {
             console.log(res.data.message);
             imageUrl = res.data.message;
+
+            axios({
+              method: 'post',
+              url: 'https://aros-server-new.onrender.com/obstacle/create',
+              data: JSON.stringify({
+                userId: 2,
+                lat: lat,
+                lng: lng,
+                type: obstacle.class,
+                regionId: 3,
+                imageUrl: imageUrl
+              }),
+              headers: {
+                'Content-Type': 'application/json'
+              },
+            })
+              .then(res => {
+                if (res.status === 200) console.log('CREATED');
+              })
+              .catch(e => {
+                console.log(e);
+              })
           })
           .catch(e => {
             console.log(e);
           })
-
-        axios({
-          method: 'post',
-          url: 'https://aros-server-new.onrender.com/obstacle/create',
-          data: JSON.stringify({
-            userId: 2,
-            lat: lat,
-            lng: lng,
-            type: obstacle.class,
-            regionId: 3,
-            imageUrl: imageUrl
-          }),
-          headers: {
-            'Content-Type': 'application/json'
-          },
-        })
-        .then(res => {
-          if( res.status === 200) console.log('CREATED'); 
-        })
-        .catch(e => {
-          console.log(e);
-        })
-
 
       }
 
