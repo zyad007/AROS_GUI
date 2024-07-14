@@ -122,7 +122,6 @@ app.whenReady().then(() => {
 
 
   modelClient.on('data', (data) => {
-    console.log(data)
     if (data.toString() === '{}') return;
 
     const obstacles = JSON.parse(data.toString());
@@ -182,9 +181,9 @@ app.whenReady().then(() => {
             'Content-Type': 'multipart/form-data'
           }
         })
-          .then((res: any) => {
-            console.log(res.message);
-            imageUrl = res.message;
+          .then((res) => {
+            console.log(res.data.message);
+            imageUrl = res.data.message;
           })
           .catch(e => {
             console.log(e);
@@ -205,7 +204,9 @@ app.whenReady().then(() => {
           })
         })
           .then(res => {
-            if (res.ok) return
+            if (res.ok) {
+              console.log('CREATED');
+            }
           })
           .catch(e => {
             console.log(e);
