@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import Map, { MapRef, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import ObstacleModal from '@renderer/components/ObstacleModal';
+import { Popup } from 'react-map-gl';
+import PopupModal from '@renderer/components/PopupModal';
 
 const MAPTILER = 'https://api.maptiler.com/maps/streets/style.json?key=ZFtcxc8UpIJArb56xQlZ';
 
@@ -10,26 +12,46 @@ export default function Home() {
     const [long, setLong] = useState(0);
     const [lat, setLat] = useState(0);
 
-    
+
     const mapRef = useRef<MapRef>(null);
-    
+
     const [screenLock, setScreenLock] = useState(true);
-    
+
     const [isOpen, setIsOpen] = useState(false);
     const [img, setImg] = useState('');
     const [_class, setClass] = useState('');
     const [score, setScore] = useState(0);
-    const [box, setBox] = useState([]);
+
+
+    const [obstacles, setObstacles] = useState<{
+        id: number,
+        lat: number,
+        lng: number,
+        type: string,
+        status: string,
+        imageUrl: string
+    }[]>([])
+
+    const [selectedObstacle, setSelectedObstacle] = useState<{
+        type: string,
+        status: string,
+        imageUrl: string
+    }>({
+        type: '',
+        status: '',
+        imageUrl: ''
+    })
+
+    const [popupModal, setPopupModal] = useState(false);
 
     useEffect(() => {
         window.electron.ipcRenderer.on('gps', (_, res) => {
-            console.log('a7aaaaaaaaa');
             setLong(res.lng);
             setLat(res.lat);
         })
 
         window.electron.ipcRenderer.on('obstacle_detected', (_, res) => {
-            
+
             setImg(`data:image/png;base64,${btoa(res.imagePath.reduce((data, byte) => data + String.fromCharCode(byte), ''))}`)
             setIsOpen(true)
         })
@@ -37,6 +59,18 @@ export default function Home() {
         window.electron.ipcRenderer.on('v2v_receive', (_, res) => {
             console.log('V2V Recived');
         })
+
+        setInterval(() => {
+            fetch('https://aros-server-new.onrender.com/obstacle')
+                .then(res => res.json())
+                .then(result => {
+                    console.log(result);
+                    setObstacles(result.data);
+                })
+                .catch(e => {
+                    console.log(e);
+                })
+        }, 5000)
     }, [])
 
     useEffect(() => {
@@ -48,7 +82,7 @@ export default function Home() {
 
     const handleScreenLock = () => {
         if (!screenLock) {
-            mapRef.current?.flyTo({ center: [long, lat], duration: 500 })
+            mapRef.current?.easeTo({ center: [long, lat], duration: 2000 })
             mapRef.current?.rotateTo(0)
         }
 
@@ -57,7 +91,8 @@ export default function Home() {
 
     return (
         <>
-            <ObstacleModal isOpen={isOpen} setIsOpen={setIsOpen} score={score} _class={_class} box={box} img={img}/>
+            <ObstacleModal isOpen={isOpen} setIsOpen={setIsOpen} score={score} _class={_class} img={img} />
+            <PopupModal isOpen={popupModal} setIsOpen={setPopupModal} obstacle={selectedObstacle} />
             <div className='relative w-full h-full'>
                 <div className='absolute top-0 left-0'>
                     <div className='flex justify-center items-center bg-slate-500 w-24 h-24 rounded-full absolute top-5 left-5 z-10 p-3' onClick={handleScreenLock}>
@@ -94,9 +129,26 @@ export default function Home() {
                             </div>
                         </Marker>
 
+                        {
+                            obstacles.map((obstacle, index) => {
+                                if (obstacle.status === 'FIXED') return;
+                                return (
+                                    <Marker key={index} latitude={obstacle.lat} longitude={obstacle.lng} color='#DC143C'
+                                        onClick={() => {
+                                            setSelectedObstacle(obstacle);
+                                            setPopupModal(true);
+                                        }}
+                                    >
+                                    </Marker>
+                                )
+                            })
+                        }
+
                     </Map>
                 </div>
             </div>
         </>
     );
 }
+
+
