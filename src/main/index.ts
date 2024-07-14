@@ -7,6 +7,7 @@ import { readFileSync } from 'fs';
 import { ReadlineParser, SerialPort } from 'serialport';
 // import fetch from 'node-fetch';
 import FormData from 'form-data';
+import axios from 'axios';
 
 
 const IMAGE_PATH = `/home/Omar/Pictures/AROS/`;
@@ -73,17 +74,19 @@ app.whenReady().then(() => {
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // CODE START
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
-  
+
   //////////////////
   // Send GPS LATLNG
   //////////////////
-  let lat = 29.851046;
-  let lng = 31.341515;
+  let lat = 29.851030;
+  let lng = 31.341496;
 
-  mainWindow.webContents.send('gps', {
-    lng,
-    lat
-  })
+  setInterval(() => {
+    mainWindow.webContents.send('gps', {
+      lat,
+      lng
+    })
+  }, 500)
 
   // setInterval(() => {
   //   lat += 0.00001;
@@ -131,6 +134,7 @@ app.whenReady().then(() => {
 
       if (obstacle.class !== 'D50' && obstacle.class !== 'D40' && obstacle.class !== 'D20' && obstacle.class !== 'accident') return;
 
+      console.log('DETECTED ' + obstacle.class);
       /////////////
       // Read Image
       /////////////
@@ -170,16 +174,23 @@ app.whenReady().then(() => {
         let imageUrl = '';
         const formData = new FormData();
         formData.append('file', image);
-        fetch('https://az-managment-server.onrender.com/upload', {
-          method: 'POST',
-          body: formData as any
+        axios({
+          method: 'post',
+          url: 'https://az-managment-server.onrender.com/upload',
+          data: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
         })
-          .then(res => res.json())
           .then((res: any) => {
+            console.log(res.message);
             imageUrl = res.message;
           })
+          .catch(e => {
+            console.log(e);
+          })
 
-        fetch('', {
+        fetch('https://aros-server-new.onrender.com/obstacle/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -202,7 +213,7 @@ app.whenReady().then(() => {
       }
 
       catch (e) {
-        console.log(e);
+        console.log('SERVER');
       }
 
     })
@@ -237,6 +248,7 @@ app.whenReady().then(() => {
     //   console.log(e);
     // }
   })
+  
 
 
 

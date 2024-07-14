@@ -23,12 +23,13 @@ export default function Home() {
 
     useEffect(() => {
         window.electron.ipcRenderer.on('gps', (_, res) => {
+            console.log('a7aaaaaaaaa');
             setLong(res.lng);
             setLat(res.lat);
         })
 
         window.electron.ipcRenderer.on('obstacle_detected', (_, res) => {
-            console.log(res);
+            
             setImg(`data:image/png;base64,${btoa(res.imagePath.reduce((data, byte) => data + String.fromCharCode(byte), ''))}`)
             setIsOpen(true)
         })
