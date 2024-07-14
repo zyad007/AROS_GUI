@@ -5,9 +5,11 @@ import icon from '../../resources/icon.png?asset'
 import { createConnection, Socket } from 'net';
 import { readFileSync } from 'fs';
 import { ReadlineParser, SerialPort } from 'serialport';
+// import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 
-const IMAGE_PATH = `/tmp/detected_pics/`;
+const IMAGE_PATH = `/home/Omar/Pictures/AROS/`;
 
 function createWindow() {
   // Create the browser window.
@@ -67,46 +69,136 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // CODE START
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+  
+  //////////////////
+  // Send GPS LATLNG
+  //////////////////
+  let lat = 29.851046;
+  let lng = 31.341515;
+
+  mainWindow.webContents.send('gps', {
+    lng,
+    lat
+  })
+
+  // setInterval(() => {
+  //   lat += 0.00001;
+  //   mainWindow.webContents.send('obstacle_detected', {
+  //     // imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
+  //   })
+  //   mainWindow.webContents.send('gps', {
+  //     lng,
+  //     lat
+  //   })
+  // }, 3000)
+
+
+  ///////////////////
+  // INIT SERIAL PORT
+  ///////////////////
   const serialPort = new SerialPort({ path: '/dev/ttyAMA0', baudRate: 9600, parity: 'none', stopBits: 1, dataBits: 8 }) // '/dev/ttyAMA0' for Pi 3
-  serialPort.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+  serialPort.write('Init GUI', 'utf-8')
 
   serialPort.on('data', (data) => {
     console.log(data);
     mainWindow.webContents.send('v2v_receive', data)
   })
+
+  ////////////////////
+  // INIT MODEL SOCKET
+  ////////////////////
   const modelClient = new Socket();
 
   modelClient.connect({ port: 12345, host: '127.0.0.1' }, () => {
     console.log('Connected to Model');
   })
 
-  modelClient.on('data', (data) => {
 
-    if(data.toString() === '{}') return;
+  modelClient.on('data', (data) => {
+    console.log(data)
+    if (data.toString() === '{}') return;
 
     const obstacles = JSON.parse(data.toString());
     const imageId = obstacles.shift();
 
     obstacles.forEach(obstacle => {
 
-      if (obstacle.class !== 'D50') return;
+      let image;
 
+      if (obstacle.class !== 'D50' && obstacle.class !== 'D40' && obstacle.class !== 'D20' && obstacle.class !== 'accident') return;
+
+      /////////////
+      // Read Image
+      /////////////
       try {
-        // Warn User
+        image = readFileSync(IMAGE_PATH + `frame_${imageId}.jpg`)
+      }
+      catch {
+        console.log('error image')
+      }
+
+      ////////////
+      // Warn User
+      ////////////
+      try {
         mainWindow.webContents.send('obstacle_detected', {
           class: obstacle.class,
           score: obstacle.score,
           box: obstacle.box,
-          imagePath: readFileSync(IMAGE_PATH + `frame${imageId}`)
+          imagePath: image
         })
         // Warn V2V
         serialPort.write(JSON.stringify({
           class: obstacle.class,
           score: obstacle.score,
         }) + '\n', 'utf-8');
-        // Send Server
-
         console.log(obstacle);
+      }
+      catch (e) {
+        console.log(e);
+      }
+
+
+      /////////////////
+      // Send To Server
+      /////////////////
+      try {
+        let imageUrl = '';
+        const formData = new FormData();
+        formData.append('file', image);
+        fetch('https://az-managment-server.onrender.com/upload', {
+          method: 'POST',
+          body: formData as any
+        })
+          .then(res => res.json())
+          .then((res: any) => {
+            imageUrl = res.message;
+          })
+
+        fetch('', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: 2,
+            lat: lat,
+            lng: lng,
+            type: obstacle.class,
+            regionId: 3,
+            imageUrl: imageUrl
+          })
+        })
+          .then(res => {
+            if (res.ok) return
+          })
+          .catch(e => {
+            console.log(e);
+          })
       }
 
       catch (e) {
@@ -115,27 +207,39 @@ app.whenReady().then(() => {
 
     })
 
+    // // Warn User
+    // let imag;
+
+    // try {
+    //   imag = readFileSync(IMAGE_PATH + `frame_${imageId}.jpg`)
+    // }
+    // catch(e) {
+    //   console.log(e)
+    // }
+    // mainWindow.webContents.send('obstacle_detected', {
+    //   class: obstacle[0]?.class,
+    //   score: obstacle[0]?.score,
+    //   box: obstacle.box,
+    //   imagePath: imag
+    // })
+    // // Warn V2V
+    // serialPort.write( JSON.stringify({
+    //   class: obstacle[0]?.class,
+    //   score: obstacle[0]?.score,
+    // }) + '\n', 'utf-8')
+    // // Send Server
+
+
+    // console.log(obstacle);
+    // try {
+    //   const img = readFileSync(IMAGE_PATH + `frame${imageId}`)
+    // } catch (e) {
+    //   console.log(e);
+    // }
   })
 
 
-  let long = 31.234049;
-  let lat = 30.050363;
 
-  mainWindow.webContents.send('gps', {
-    long,
-    lat
-  })
-
-  // setInterval(() => {
-  //   lat += 0.00001;
-  //   mainWindow.webContents.send('obstacle_detected', {
-  //     imagePath: readFileSync('C:\\Users\\Zyad\\Desktop\\AROS.png')
-  //   })
-  //   mainWindow.webContents.send('gps', {
-  //     long,
-  //     lat
-  //   })
-  // }, 3000)
 
 })
 

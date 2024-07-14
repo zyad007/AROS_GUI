@@ -13,14 +13,16 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux --arm64"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "@serialport/parser-readline": "^12.0.0",
     "@vis.gl/react-google-maps": "^0.10.0",
+    "form-data": "^4.0.0",
     "maplibre-gl": "^4.2.0",
+    "node-fetch": "^3.3.2",
     "react-map-gl": "^7.1.7",
     "react-modal": "^3.16.1",
     "react-router-dom": "^6.23.0",

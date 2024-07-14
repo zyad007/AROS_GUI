@@ -23,7 +23,7 @@ export default function Home() {
 
     useEffect(() => {
         window.electron.ipcRenderer.on('gps', (_, res) => {
-            setLong(res.long);
+            setLong(res.lng);
             setLat(res.lat);
         })
 
@@ -76,7 +76,7 @@ export default function Home() {
                         initialViewState={{
                             longitude: 0,
                             latitude: 0,
-                            zoom: 16,
+                            zoom: 18,
                             bearing: 0
                         }}
                         dragPan={!screenLock}
