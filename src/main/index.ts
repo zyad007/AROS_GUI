@@ -189,28 +189,29 @@ app.whenReady().then(() => {
             console.log(e);
           })
 
-        fetch('https://aros-server-new.onrender.com/obstacle/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+        axios({
+          method: 'post',
+          url: 'https://aros-server-new.onrender.com/obstacle/create',
+          data: JSON.stringify({
             userId: 2,
             lat: lat,
             lng: lng,
             type: obstacle.class,
             regionId: 3,
             imageUrl: imageUrl
-          })
+          }),
+          headers: {
+            'Content-Type': 'application/json'
+          },
         })
-          .then(res => {
-            if (res.ok) {
-              console.log('CREATED');
-            }
-          })
-          .catch(e => {
-            console.log(e);
-          })
+        .then(res => {
+          if( res.status === 200) console.log('CREATED'); 
+        })
+        .catch(e => {
+          console.log(e);
+        })
+
+
       }
 
       catch (e) {
@@ -249,7 +250,7 @@ app.whenReady().then(() => {
     //   console.log(e);
     // }
   })
-  
+
 
 
 
